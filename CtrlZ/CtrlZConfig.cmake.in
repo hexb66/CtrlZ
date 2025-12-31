@@ -1,0 +1,61 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/CtrlZTargets.cmake")
+
+find_dependency(nlohmann_json REQUIRED)
+
+set(CtrlZ_INCLUDE_DIRS "@CMAKE_INSTALL_INCLUDEDIR@/CtrlZ")
+set(CtrlZ_LIBRARY_DIRS "@CMAKE_INSTALL_PREFIX@/lib")
+set(CtrlZ_VERSION "@CtrlZ_VERSION@")
+
+if(NOT DEFINED ONNXRUNTIME_ROOT)
+    set(ONNXRUNTIME_ROOT "@ONNXRUNTIME_ROOT@" CACHE PATH "ONNX Runtime root directory")
+endif()
+
+if(NOT EXISTS "${ONNXRUNTIME_ROOT}")
+    if(WIN32)
+        set(ONNXRUNTIME_ROOT "C:/ProgramFiles/lib/onnxruntime" CACHE PATH "ONNX Runtime root directory" FORCE)
+    elseif(UNIX)
+        set(ONNXRUNTIME_ROOT "/usr/local" CACHE PATH "ONNX Runtime root directory" FORCE)
+    endif()
+endif()
+
+if(EXISTS "${ONNXRUNTIME_ROOT}/include")
+    set(CtrlZ_ONNXRUNTIME_INCLUDE_DIRS "${ONNXRUNTIME_ROOT}/include")
+endif()
+
+if(@USE_ONNXRUNTIME_GPU_VALUE@)
+    if(WIN32)
+        if(EXISTS "${ONNXRUNTIME_ROOT}/lib/onnxruntime.lib")
+            set(CtrlZ_ONNXRUNTIME_LIBRARIES
+                "${ONNXRUNTIME_ROOT}/lib/onnxruntime.lib"
+                "${ONNXRUNTIME_ROOT}/lib/onnxruntime_providers_shared.lib"
+            )
+        endif()
+    elseif(UNIX)
+        if(EXISTS "${ONNXRUNTIME_ROOT}/lib/libonnxruntime.so")
+            set(CtrlZ_ONNXRUNTIME_LIBRARIES
+                "${ONNXRUNTIME_ROOT}/lib/libonnxruntime.so"
+                "${ONNXRUNTIME_ROOT}/lib/libonnxruntime_providers_shared.so"
+            )
+        endif()
+    endif()
+else()
+    if(WIN32)
+        if(EXISTS "${ONNXRUNTIME_ROOT}/lib/onnxruntime.lib")
+            set(CtrlZ_ONNXRUNTIME_LIBRARIES
+                "${ONNXRUNTIME_ROOT}/lib/onnxruntime.lib"
+            )
+        endif()
+    elseif(UNIX)
+        if(EXISTS "${ONNXRUNTIME_ROOT}/lib/libonnxruntime.so")
+            set(CtrlZ_ONNXRUNTIME_LIBRARIES
+                "${ONNXRUNTIME_ROOT}/lib/libonnxruntime.so"
+            )
+        endif()
+    endif()
+endif()
+
+set(CtrlZ_FOUND TRUE)
+check_required_components(CtrlZ)
+
