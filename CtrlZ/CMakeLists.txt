@@ -48,7 +48,9 @@ add_subdirectory(Extensions)
 
 target_include_directories(CtrlZ PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/include>
     $<INSTALL_INTERFACE:include/CtrlZ>
+    $<INSTALL_INTERFACE:include/CtrlZ/ThirdParty/include>
 )
 
 if(WIN32)
@@ -57,12 +59,12 @@ if(WIN32)
     message("${ONNXRUNTIME_ROOT}/include")
     if(USE_ONNXRUNTIME_GPU)
         message(STATUS "Using ONNX Runtime GPU version")
-        target_link_libraries(CtrlZ PUBLIC
+        target_link_libraries(CtrlZ PRIVATE
             ${ONNXRUNTIME_ROOT}/lib/onnxruntime_providers_shared.lib
             ${ONNXRUNTIME_ROOT}/lib/onnxruntime.lib)
     else()
         message(STATUS "Using ONNX Runtime CPU version")
-        target_link_libraries(CtrlZ PUBLIC
+        target_link_libraries(CtrlZ PRIVATE
             ${ONNXRUNTIME_ROOT}/lib/onnxruntime.lib)
     endif()
 elseif(UNIX)
@@ -71,12 +73,12 @@ elseif(UNIX)
     message("${ONNXRUNTIME_ROOT}/include")
     if(USE_ONNXRUNTIME_GPU)
         message(STATUS "Using ONNX Runtime GPU version")
-        target_link_libraries(CtrlZ PUBLIC
+        target_link_libraries(CtrlZ PRIVATE
             ${ONNXRUNTIME_ROOT}/lib/libonnxruntime_providers_shared.so
             ${ONNXRUNTIME_ROOT}/lib/libonnxruntime.so)
     else()
         message(STATUS "Using ONNX Runtime CPU version")
-        target_link_libraries(CtrlZ PUBLIC
+        target_link_libraries(CtrlZ PRIVATE
             ${ONNXRUNTIME_ROOT}/lib/libonnxruntime.so)
     endif()
 else()
@@ -87,6 +89,11 @@ endif()
 #target_include_directories(CtrlZ PUBLIC ${READERWRITERQUEUE_INCLUDE_DIRS})
 target_link_libraries(CtrlZ PUBLIC
     nlohmann_json::nlohmann_json
+)
+
+# Set target properties for installation
+set_target_properties(CtrlZ PROPERTIES
+    EXPORT_NAME CtrlZ
 )
 
 # Installation configuration
@@ -136,28 +143,21 @@ install(EXPORT CtrlZTargets
     DESTINATION lib/cmake/CtrlZ
 )
 
+include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-# Convert boolean to 0/1 for proper CMake if() evaluation
+# Convert boolean to 0/1 for robust CMake if() evaluation in generated config
 if(USE_ONNXRUNTIME_GPU)
     set(USE_ONNXRUNTIME_GPU_VALUE 1)
 else()
     set(USE_ONNXRUNTIME_GPU_VALUE 0)
 endif()
 
-# First configure USE_ONNXRUNTIME_GPU variable
+# Generate CtrlZConfig.cmake (avoid configure_package_config_file here; keep it simple and stable)
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/CtrlZConfig.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/CtrlZConfig.cmake.tmp
-    @ONLY
-)
-
-# Then use configure_package_config_file for path variables
-configure_package_config_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/CtrlZConfig.cmake.tmp
     ${CMAKE_CURRENT_BINARY_DIR}/CtrlZConfig.cmake
-    INSTALL_DESTINATION lib/cmake/CtrlZ
-    PATH_VARS CMAKE_INSTALL_INCLUDEDIR ONNXRUNTIME_ROOT
+    @ONLY
 )
 
 write_basic_package_version_file(
